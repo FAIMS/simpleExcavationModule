@@ -364,8 +364,7 @@
         </input>
         <!--We would like to see Dropdown-->
         <select1 faims_attribute_name="Soil Stone Shape" faims_attribute_type="vocab" faims_certainty="true" faims_read_only="false" ref="Soil_Stone_Shape">
-          <label>{Soil_Stone_Shape}</label>
-          <label>{Soil_Stone_Shape}</label>
+          <label>{Soil_Stone_Shape}</label>          
           <item>
             <label>placeholder</label>
             <value>placeholder</value>
@@ -424,7 +423,7 @@
             <value>placeholder</value>
           </item>
         </select1>
-        <input faims_attribute_name="Sides of Cut" faims_attribute_type="freetext" faims_certainty="falsw" faims_read_only="false" ref="Sides_of_Cut">
+        <input faims_attribute_name="Sides of Cut" faims_attribute_type="freetext" faims_certainty="false" faims_read_only="false" ref="Sides_of_Cut">
           <label>{Sides_of_Cut}</label>
         </input>
         <!--We would like to see Radiogroup-->
