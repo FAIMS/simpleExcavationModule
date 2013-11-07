@@ -1,0 +1,548 @@
+/*** 'Editable' - you can edit the code below based on the needs ***/
+
+setSyncEnabled(true);
+setFileSyncEnabled(true);
+
+
+/*** control ***/
+
+onEvent("control/data", "show", "refreshEntities()");
+onEvent("control/gps/connectexternal", "click", "startExternalGPS()");
+onEvent("control/gps/connectinternal", "click", "startInternalGPS()");
+
+/*** ArchEnt: Context ***/
+
+
+refreshEntities() {
+	showToast("Fetching saved contexts...");
+	populateList("control/data/ContextList", fetchEntityList("Context"));
+}
+
+
+onEvent("Context/Context_Attachments/attachPhoto", "click", "attachPictureTo(\"Context/Context_Attachments/Photo\")");
+
+onEvent("Context/Context_Attachments/Update", "delayclick", "saveContext()");
+onEvent("Context/Context_Attachments/Delete", "delayclick", "deleteContext()");
+onEvent("control/data/ContextList", "click", "loadContext()");
+onEvent("control/data/newContext", "click", "newContext()");
+
+
+
+onEvent("Context/Context_Attachments/attachSketch", "click", "attachFileTo(\"Context/Context_Attachments/Sketch\")");
+onEvent("Context/Context_Attachments/viewattached", "click", "viewArchEntAttachedFiles(entityId)");
+
+
+String context_id = null;
+
+newContext(){
+	context_id = null;
+	newTabGroup("Context");
+    
+   loadContextAttributes();
+
+
+}
+
+loadContextAttributes(){
+	populateDropDown("Context/Context_GeneralInformation/Context_Type", makeVocab("Context Type"));
+    populateHierarchicalDropDown("Context/Context_Deposits/Soil_Compaction_Type", "Soil Compaction Type");
+    populateDropDown("Context/Context_Deposits/Soil_Grain_Size", makeVocab("Soil Grain Size"));
+    populateDropDown("Context/Context_Deposits/Soil_Texture", makeVocab("Soil Texture"));
+    populateDropDown("Context/Context_Deposits/Soil_Particle_Sorting", makeVocab("Soil Particle Sorting"));
+    populateHierarchicalDropDown("Context/Context_Deposits/Soil_Stone_Shape", "Soil Stone Shape");
+    populateDropDown("Context/Context_Deposits/Horizon_Boundary", makeVocab("Horizon Boundary"));
+    populateDropDown("Context/Context_Cuts/Shape_of_Cut", makeVocab("Shape of Cut"));
+    populateRadioGroup("Context/Context_Cuts/Shape_of_Corners", makeVocab("Shape of Corners"));
+    populateRadioGroup("Context/Context_Cuts/Break_of_Slope_Top", makeVocab("Break of Slope - Top"));
+    populateRadioGroup("Context/Context_Cuts/Break_of_slope_Base", makeVocab("Break of slope - Base"));
+    populateHierarchicalDropDown("Context/Context_Cuts/Shape_of_Base", "Shape of Base");
+    populateDropDown("Context/Context_Cuts/Orientation", makeVocab("Orientation"));
+    populateHierarchicalDropDown("Context/Context_Interpretation/Your_Interpretation", "Your Interpretation");
+
+}
+
+
+saveContext() {
+	if (isNull(getFieldValue("Context/Context_GeneralInformation/Context_ID"))) {
+		showWarning("Logic Error", "Cannot save record without id");
+		return;
+	}
+	
+	//data = getCreatedGeometry();
+	if (!isNull(context_id)) {
+		entity = fetchArchEnt(context_id);
+		//data = entity.getGeometryList();
+	}
+	// first null is map data
+
+	//saveTabGroup("Context", context_id, data, null, "context_id = getLastSavedRecordId(); clearCreatedGeometry();");
+	saveTabGroup("Context", context_id, null, null, "context_id = getLastSavedRecordId();");
+}
+
+deleteContext(){
+	if (!isNull(context_id)) {
+        showAlert("Confirm Deletion", "Press OK to Delete this Context!", "reallyDeleteContext()", "doNotDelete()");
+	}
+}
+
+reallyDeleteContext(){
+    deleteArchEnt(context_id);
+    cancelTabGroup("Context", false);
+}
+
+doNotDelete(){
+    showToast("Delete Cancelled.");
+}
+
+loadContext() {
+	//newContext();
+	context_id = getListItemValue();
+	if (isNull(context_id)) return;
+	loadContextAttributes();
+	showTabGroup("Context", context_id);
+
+}
+
+
+/*** Artefact Group ***/
+
+onEvent("Context/Context_Relationships_to_Other_Contexts/newArtefactGroup", "click", "newArtefactGroup()");
+
+onEvent("Artefact_Group/Artefact_Group_GeneralInformation/Update", "delayclick", "saveArtefactGroup()");
+onEvent("Artefact_Group/Artefact_Group_GeneralInformation/Delete", "delayclick", "deleteArtefactGroup()");
+
+/*
+
+onEvent("ArtefactGroup/ArtefactGroup_Attachments/attachPhoto", "click", "attachPictureTo(\"ArtefactGroup/ArtefactGroup_Attachments/Photo\")");
+
+
+
+onEvent("control/data/ArtefactGroupList", "click", "loadArtefactGroup()");
+
+
+
+onEvent("ArtefactGroup/ArtefactGroup_Attachments/attachSketch", "click", "attachFileTo(\"ArtefactGroup/ArtefactGroup_Attachments/Sketch\")");
+onEvent("ArtefactGroup/ArtefactGroup_Attachments/viewattached", "click", "viewArchEntAttachedFiles(entityId)");
+
+*/
+onEvent("Context/Context_Relationships_to_Other_Contexts", "show", "updateAllContext()");
+updateAllContext(){
+	Object localArtefactGroup = new ArrayList();
+	Object localSample = new ArrayList();
+	Object relnList = new ArrayList();
+	Object verbList = new ArrayList();
+	Object contextList = new ArrayList();
+
+	if (!isNull(context_id)){
+		localArtefactGroup = fetchAll("select uuid, aenttypename || ': ' || group_concat(coalesce(measure || ' ' || vocabname || '(' ||freetext||')',  measure || ' (' || freetext ||')',  vocabname || ' (' || freetext ||')',  measure || ' ' || vocabname ,  vocabname || ' (' || freetext || ')',  measure || ' (' || freetext || ')',  measure,  vocabname,  freetext,  measure,  vocabname,  freetext), ' | ') as response, valuetimestamp\n"+
+"  FROM (  SELECT uuid, attributeid, vocabid, attributename, vocabname, measure, freetext, certainty, attributetype, valuetimestamp, aenttypename\n"+
+"            FROM latestNonDeletedArchentIdentifiers\n"+
+"           WHERE aenttypename = 'Artefact Group'\n"+
+"             AND uuid in (select uuid\n"+
+"                            FROM latestNonDeletedAentReln\n"+
+"                           where relationshipid in (select relationshipid\n"+
+"                                                      FROM latestNonDeletedAentReln\n"+
+"                                                      JOIN relationship using (relationshipid)\n"+
+"                                                      JOIN relntype using (relntypeid)\n"+
+"                                                     where uuid = "+context_id+"\n"+
+"                                                       and relntypeName = 'ContextArtefactGroup')\n"+
+"                             and uuid != "+context_id+")\n"+
+"        ORDER BY uuid, attributename ASC)\n"+
+"group by uuid\n"+
+"order by valuetimestamp desc, uuid, attributename;");
+
+		localSample = fetchAll("select uuid, aenttypename || ': ' || group_concat(coalesce(measure || ' ' || vocabname || '(' ||freetext||')',  measure || ' (' || freetext ||')',  vocabname || ' (' || freetext ||')',  measure || ' ' || vocabname ,  vocabname || ' (' || freetext || ')',  measure || ' (' || freetext || ')',  measure,  vocabname,  freetext,  measure,  vocabname,  freetext), ' | ') as response, valuetimestamp\n"+
+"  FROM (  SELECT uuid, attributeid, vocabid, attributename, vocabname, measure, freetext, certainty, attributetype, valuetimestamp, aenttypename\n"+
+"            FROM latestNonDeletedArchentIdentifiers\n"+
+"           WHERE aenttypename = 'Sample'\n"+
+"             AND uuid in (select uuid\n"+
+"                            FROM latestNonDeletedAentReln\n"+
+"                           where relationshipid in (select relationshipid\n"+
+"                                                      FROM latestNonDeletedAentReln\n"+
+"                                                      JOIN relationship using (relationshipid)\n"+
+"                                                      JOIN relntype using (relntypeid)\n"+
+"                                                     where uuid = "+context_id+"\n"+
+"                                                       and relntypeName = 'ContextSample')\n"+
+"                             and uuid != "+context_id+")\n"+
+"        ORDER BY uuid, attributename ASC)\n"+
+"group by uuid\n"+
+"order by valuetimestamp desc, uuid, attributename;");
+
+relnList = fetchAll("select relntypeid, relntypename from relntype where relntypename not like '%Context%' order by relntypeid;");
+verbList = fetchAll("select parent, parent from relntype where relntypeid in (select relntypeid from relntype where relntypename not like '%Context%' order by relntypeid limit 1) union select child, child from relntype where relntypeid in (select relntypeid from relntype where relntypename not like '%Context%' order by relntypeid limit 1);");
+contextList = fetchAll("select uuid, group_concat(coalesce(measure || ' ' || vocabname || '(' ||freetext||')',  measure || ' (' || freetext ||')',  vocabname || ' (' || freetext ||')',  measure || ' ' || vocabname ,  vocabname || ' (' || freetext || ')',  measure || ' (' || freetext || ')',  measure,  vocabname,  freetext,  measure,  vocabname,  freetext), ' | ') as response from latestNonDeletedArchEntIdentifiers where aenttypename = 'Context' and uuid != '"+context_id+"' group by uuid;" );
+	}
+	populateDropDown("Context/Context_Relationships_to_Other_Contexts/artefactGroup", localArtefactGroup);
+	populateDropDown("Context/Context_Relationships_to_Other_Contexts/sample", localSample);
+	populateDropDown("Context/Context_Relationships_to_Other_Contexts/reln", relnList);
+	populateDropDown("Context/Context_Relationships_to_Other_Contexts/verb", verbList);
+	populateDropDown("Context/Context_Relationships_to_Other_Contexts/context", contextList);
+}
+
+onEvent("Context/Context_Relationships_to_Other_Contexts/reln", "click", "updateVerb()");
+
+updateVerb(){
+	string reln = getFieldValue("Context/Context_Relationships_to_Other_Contexts/reln");
+	if (!isNull(reln)){
+		verbList = fetchAll("select parent, parent from relntype where relntypename = '"+reln+"' union select child, child from relntype where relntypename = '"+reln+"' ");
+	}
+	populateDropDown("Context/Context_Relationships_to_Other_Contexts/verb", verbList);
+
+
+}
+String artefactgroup_id = null;
+
+newArtefactGroup(){
+	saveContext();
+	artefactgroup_id = null;
+	newTabGroup("Artefact_Group");
+    
+   loadArtefactGroupAttributes();
+
+
+}
+
+loadArtefactGroupAttributes(){
+
+	setFieldValue("Artefact_Group/Artefact_Group_GeneralInformation/Context_ID", getFieldValue("Context/Context_GeneralInformation/Context_ID"));
+	setFieldValue("Artefact_Group/Artefact_Group_GeneralInformation/Site_Code", getFieldValue("Context/Context_GeneralInformation/Site_Code"));
+	populateHierarchicalDropDown("Artefact_Group/Artefact_Group_GeneralInformation/Artefact_Class", "Artefact Class");
+
+	/*
+	populateDropDown("ArtefactGroup/ArtefactGroup_GeneralInformation/ArtefactGroup_Type", makeVocab("ArtefactGroup Type"));
+    populateHierarchicalDropDown("ArtefactGroup/ArtefactGroup_Deposits/Soil_Compaction_Type", "Soil Compaction Type");
+    populateDropDown("ArtefactGroup/ArtefactGroup_Deposits/Soil_Grain_Size", makeVocab("Soil Grain Size"));
+    populateDropDown("ArtefactGroup/ArtefactGroup_Deposits/Soil_Texture", makeVocab("Soil Texture"));
+    populateDropDown("ArtefactGroup/ArtefactGroup_Deposits/Soil_Particle_Sorting", makeVocab("Soil Particle Sorting"));
+    populateHierarchicalDropDown("ArtefactGroup/ArtefactGroup_Deposits/Soil_Stone_Shape", "Soil Stone Shape");
+    populateDropDown("ArtefactGroup/ArtefactGroup_Deposits/Horizon_Boundary", makeVocab("Horizon Boundary"));
+    populateDropDown("ArtefactGroup/ArtefactGroup_Cuts/Shape_of_Cut", makeVocab("Shape of Cut"));
+    populateRadioGroup("ArtefactGroup/ArtefactGroup_Cuts/Shape_of_Corners", makeVocab("Shape of Corners"));
+    populateRadioGroup("ArtefactGroup/ArtefactGroup_Cuts/Break_of_Slope_Top", makeVocab("Break of Slope - Top"));
+    populateRadioGroup("ArtefactGroup/ArtefactGroup_Cuts/Break_of_slope_Base", makeVocab("Break of slope - Base"));
+    populateHierarchicalDropDown("ArtefactGroup/ArtefactGroup_Cuts/Shape_of_Base", "Shape of Base");
+    populateDropDown("ArtefactGroup/ArtefactGroup_Cuts/Orientation", makeVocab("Orientation"));
+    populateHierarchicalDropDown("ArtefactGroup/ArtefactGroup_Interpretation/Your_Interpretation", "Your Interpretation");
+	*/
+}
+
+
+saveArtefactGroup() {
+	if (isNull(getFieldValue("Artefact_Group/Artefact_Group_GeneralInformation/Artefact_Group_ID"))) {
+		showWarning("Logic Error", "Cannot save record without id");
+		return;
+	}
+	
+	//data = getCreatedGeometry();
+	if (!isNull(artefactgroup_id)) {
+		entity = fetchArchEnt(artefactgroup_id);
+		//data = entity.getGeometryList();
+	}
+	// first null is map data
+
+	if (isNull(context_id)) {
+  		showWarning("Logic Error", "Artefact Group cannot be saved as parent context is not saved or loaded.");
+  		return null;
+   	} else {
+	   saveTabGroup("Artefact_Group", artefactgroup_id, null, null, "artefactgroup_id = getLastSavedRecordId(); onArtefactGroupSaved()");
+   	}
+
+	//saveTabGroup("ArtefactGroup", artefactgroup_id, data, null, "artefactgroup_id = getLastSavedRecordId(); clearCreatedGeometry();");
+	
+}
+onArtefactGroupSaved(){
+	artefactgroup_id = getLastSavedRecordId();
+	saveEntitiesToRel("ContextArtefactGroup", context_id, artefactgroup_id);
+	showToast("Associated with Context");
+
+}
+deleteArtefactGroup(){
+	if (!isNull(artefactgroup_id)) {
+        showAlert("Confirm Deletion", "Press OK to Delete this ArtefactGroup!", "reallyDeleteArtefactGroup()", "doNotDelete()");
+	}
+}
+
+reallyDeleteArtefactGroup(){
+    deleteArchEnt(artefactgroup_id);
+    cancelTabGroup("Artefact_Group", false);
+}
+
+doNotDelete(){
+    showToast("Delete Cancelled.");
+}
+
+loadArtefactGroup() {
+	//newArtefactGroup();
+	artefactgroup_id = getListItemValue();
+	if (isNull(artefactgroup_id)) return;
+	loadArtefactGroupAttributes();
+	showTabGroup("Artefact_Group", artefactgroup_id);
+
+}
+
+
+
+/*** Sample ***/
+
+onEvent("Context/Context_Relationships_to_Other_Contexts/newSample", "click", "newSample()");
+
+onEvent("Sample/Sample_GeneralInformation/Update", "delayclick", "saveSample()");
+onEvent("Sample/Sample_GeneralInformation/Delete", "delayclick", "deleteSample()");
+
+/*
+
+onEvent("Sample/Sample_Attachments/attachPhoto", "click", "attachPictureTo(\"Sample/Sample_Attachments/Photo\")");
+
+
+
+onEvent("control/data/SampleList", "click", "loadSample()");
+
+
+
+onEvent("Sample/Sample_Attachments/attachSketch", "click", "attachFileTo(\"Sample/Sample_Attachments/Sketch\")");
+onEvent("Sample/Sample_Attachments/viewattached", "click", "viewArchEntAttachedFiles(entityId)");
+
+*/
+
+
+String sample_id = null;
+
+newSample(){
+	saveContext();
+	sample_id = null;
+	newTabGroup("Sample");
+    
+   loadSampleAttributes();
+
+
+}
+
+loadSampleAttributes(){
+
+	setFieldValue("Sample/Sample_GeneralInformation/Context_ID", getFieldValue("Context/Context_GeneralInformation/Context_ID"));
+	setFieldValue("Sample/Sample_GeneralInformation/Site_Code", getFieldValue("Context/Context_GeneralInformation/Site_Code"));
+	populateRadioGroup("Sample/Sample_GeneralInformation/Sample_Type", makeVocab("Sample Type"));
+	populateRadioGroup("Sample/Sample_GeneralInformation/Collection_Method", makeVocab("Collection Method"));
+
+	/*
+	populateDropDown("Sample/Sample_GeneralInformation/Sample_Type", );
+    populateHierarchicalDropDown("Sample/Sample_Deposits/Soil_Compaction_Type", "Soil Compaction Type");
+    populateDropDown("Sample/Sample_Deposits/Soil_Grain_Size", makeVocab("Soil Grain Size"));
+    populateDropDown("Sample/Sample_Deposits/Soil_Texture", makeVocab("Soil Texture"));
+    populateDropDown("Sample/Sample_Deposits/Soil_Particle_Sorting", makeVocab("Soil Particle Sorting"));
+    populateHierarchicalDropDown("Sample/Sample_Deposits/Soil_Stone_Shape", "Soil Stone Shape");
+    populateDropDown("Sample/Sample_Deposits/Horizon_Boundary", makeVocab("Horizon Boundary"));
+    populateDropDown("Sample/Sample_Cuts/Shape_of_Cut", makeVocab("Shape of Cut"));
+    populateRadioGroup("Sample/Sample_Cuts/Shape_of_Corners", makeVocab("Shape of Corners"));
+    populateRadioGroup("Sample/Sample_Cuts/Break_of_Slope_Top", makeVocab("Break of Slope - Top"));
+    populateRadioGroup("Sample/Sample_Cuts/Break_of_slope_Base", makeVocab("Break of slope - Base"));
+    populateHierarchicalDropDown("Sample/Sample_Cuts/Shape_of_Base", "Shape of Base");
+    populateDropDown("Sample/Sample_Cuts/Orientation", makeVocab("Orientation"));
+    populateHierarchicalDropDown("Sample/Sample_Interpretation/Your_Interpretation", "Your Interpretation");
+	*/
+}
+
+
+saveSample() {
+	if (isNull(getFieldValue("Sample/Sample_GeneralInformation/Sample_ID"))) {
+		showWarning("Logic Error", "Cannot save record without id");
+		return;
+	}
+	
+	//data = getCreatedGeometry();
+	if (!isNull(sample_id)) {
+		entity = fetchArchEnt(sample_id);
+		//data = entity.getGeometryList();
+	}
+	// first null is map data
+
+	if (isNull(context_id)) {
+  		showWarning("Logic Error", "Sample cannot be saved as parent context is not saved or loaded.");
+  		return null;
+   	} else {
+	   saveTabGroup("Sample", sample_id, null, null, "sample_id = getLastSavedRecordId(); onSampleSaved()");
+   	}
+
+	//saveTabGroup("Sample", sample_id, data, null, "sample_id = getLastSavedRecordId(); clearCreatedGeometry();");
+	
+}
+onSampleSaved(){
+	sample_id = getLastSavedRecordId();
+	saveEntitiesToRel("ContextSample", context_id, sample_id);
+	showToast("Associated with Context");
+
+}
+deleteSample(){
+	if (!isNull(sample_id)) {
+        showAlert("Confirm Deletion", "Press OK to Delete this Sample!", "reallyDeleteSample()", "doNotDelete()");
+	}
+}
+
+reallyDeleteSample(){
+    deleteArchEnt(sample_id);
+    cancelTabGroup("Sample", false);
+}
+
+doNotDelete(){
+    showToast("Delete Cancelled.");
+}
+
+loadSample() {
+	//newSample();
+	sample_id = getListItemValue();
+	if (isNull(sample_id)) return;
+	loadSampleAttributes();
+	showTabGroup("Sample", sample_id);
+
+}
+
+
+/*** MISC ***/
+
+
+saveEntitiesToRel(type, entity1, entity2) {
+	if (isNull(entity1) || isNull(entity2)) return;
+	
+	rel_id = saveRel(null, type, null, null);
+	addReln(entity1, rel_id, null);
+	addReln(entity2, rel_id, null);
+}
+
+makeVocab(String attrib){
+    Object a = fetchAll("select vocabid, vocabname from vocabulary join attributekey using (attributeid) where attributename = '"+attrib+"' ");
+    return a;
+}
+
+/*** 'Uneditable' - you can edit the code below with extreme precaution ***/
+User user;
+/*
+initMap() {
+	setMapZoom("control/map/map", 19.0f);
+
+	//showBaseMap("control/map/map", "Base Layer", "files/data/maps/ZAG-TPan-3857-grass-tiled.tif");
+	createCanvasLayer("control/map/map", "Non-saved sketch layer");
+
+    DATA_ENTRY_LAYER_ID = createCanvasLayer("control/map/map", DATA_ENTRY_LAYER);
+
+	isEntity = true;
+	queryName = "All entities";
+	querySQL = "SELECT uuid, aenttimestamp FROM latestNonDeletedArchEntIdentifiers";
+		
+	addDatabaseLayerQuery("control/map/map", queryName, querySQL);
+
+	addTrackLogLayerQuery("control/map/map", "track log entities", 
+		"SELECT uuid, max(aenttimestamp) as aenttimestamp\n" + 
+		" FROM archentity join aenttype using (aenttypeid)\n" +
+		" where archentity.deleted is null\n" + 
+		"   and lower(aenttypename) = lower('gps_track')\n" + 
+		" group by uuid\n" + 
+		" having max(aenttimestamp)");
+		
+	addSelectQueryBuilder("control/map/map", "Select entity by type", createQueryBuilder(
+		"select uuid\n" + 
+		"  from latestNonDeletedArchent\n" + 
+		"  JOIN latestNonDeletedAentValue using (uuid)\n" + 
+		"  join aenttype using (aenttypeid)\n" + 
+		"  LEFT OUTER JOIN vocabulary using (vocabid, attributeid) \n" + 
+		"  where lower(aenttypename) = lower(?) \n" + 
+		"   group by uuid").addParameter("Type", "RemoteSensingContext"));
+		
+	//addLegacySelectQueryBuilder("control/map/map", "Select geometry by id", "files/data/maps/sydney.sqlite", "Geology100_Sydney", 
+	//	createLegacyQueryBuilder("Select PK_UID from Geology100_Sydney where PK_UID = ?").addParameter("ID", null));
+					
+	// define database layer styles for points, lines, polygons and text
+	ps = createPointStyle(10, Color.BLUE, 0.2f, 0.5f);
+	ls = createLineStyle(10, Color.GREEN, 0.05f, 0.3f, null);
+	pos = createPolygonStyle(10, Color.parseColor("#440000FF"), createLineStyle(10, Color.parseColor("#AA000000"), 0.01f, 0.3f, null));
+	ts = createTextStyle(10, Color.WHITE, 40, Typeface.SANS_SERIF);
+
+	showDatabaseLayer("control/map/map", "Saved Data Layer", isEntity, queryName, querySQL, ps, ls, pos, ts);
+}
+
+initMap();
+*/
+
+/*** TRACKLOG ***/
+/*
+setGPSUpdateInterval(4);
+
+onEvent("control/gps/startTimeLog", "click", "startTrackingGPS(\"time\", 10, \"saveTimeGPSTrack()\")");
+onEvent("control/gps/startDistanceLog", "click", "startTrackingGPS(\"distance\", 10, \"saveDistanceGPSTrack()\")");
+onEvent("control/gps/stopTrackLog", "click", "stopTrackingGPS()");
+
+saveTimeGPSTrack() {
+	List attributes = createAttributeList();
+	attributes.add(createEntityAttribute("gps_type", "time", null, null, null));
+	saveGPSTrack(attributes);
+}
+
+saveDistanceGPSTrack() {
+	List attributes = createAttributeList();
+	attributes.add(createEntityAttribute("gps_type", "distance", null, null, null));
+	saveGPSTrack(attributes);
+}
+
+saveGPSTrack(List attributes) {
+	position = getGPSPosition();
+	if (position == null) return;
+
+	//attributes.add(createEntityAttribute("gps_user", "" + user.getUserId(), null, null, null));
+	attributes.add(createEntityAttribute("gps_timestamp", "" + getCurrentTime(), null, null, null));
+	attributes.add(createEntityAttribute("gps_longitude", "" + position.getLongitude(), null, null, null));
+	attributes.add(createEntityAttribute("gps_latitude", "" + position.getLatitude(), null, null, null));
+	//attributes.add(createEntityAttribute("gps_heading", "" + getGPSHeading(), null, null, null));
+	attributes.add(createEntityAttribute("gps_accuracy", "" + getGPSEstimatedAccuracy(), null, null, null));
+	
+	positionProj = getGPSPositionProjected();
+	Point p = new Point(new MapPos(positionProj.getLongitude(), positionProj.getLatitude()), null, (PointStyle) null, null);
+	ArrayList l = new ArrayList();
+	l.add(p);
+	
+	saveArchEnt(null, "gps_track", l, attributes);
+}
+*/
+/*** USER ***/
+
+getDefaultUsersList() {
+	users = fetchAll("select userid, fname ||' ' || lname from user");
+	return users;
+}
+
+populateListForUsers(){
+    populateList("user/usertab/users", getDefaultUsersList());
+}
+
+populateListForUsers();
+
+String username = "";
+String device = "";
+
+login(){
+	Object userResult = fetchOne("select userid,fname,lname,email from user where userid='" + getListItemValue() + "';");
+	User user = new User(userResult.get(0),userResult.get(1),userResult.get(2),userResult.get(3));
+
+	setUser(user);
+	username = userResult.get(1) + " " + userResult.get(2);
+	showTabGroup("control");
+}
+
+onEvent("user/usertab/users", "click", "login()");
+
+/*** SYNC ***/
+
+onEvent("control/gps/startsync", "click", "startSync()");
+onEvent("control/gps/stopsync", "click", "stopSync()");
+
+setSyncMinInterval(10.0f);
+setSyncMaxInterval(20.0f);
+setSyncDelay(5.0f);
+
+startSync() {
+    setSyncEnabled(true);
+    setFileSyncEnabled(true);
+}
+
+stopSync() {
+    setSyncEnabled(false);
+    setFileSyncEnabled(false);
+}
