@@ -128,15 +128,23 @@
                 <child1>
                   <reln/>
                 </child1>
-                <child2>
-                  <verb/>
-                </child2>
+                
                 <child3>
                   <context/>
                 </child3>
 
               </container3>
                <relate/>
+
+               <listRelns/>
+               <container4>
+                <child1>
+                  <deleteReln/>
+                </child1>
+                <child2>
+                  <showReln/>
+                </child2>
+               </container4>
               
             </Context_Relationships_to_Other_Contexts>
             <Context_Interpretation>
@@ -374,7 +382,7 @@
           <label>{Deposit_Inclusions}</label>
         </input>
         <input faims_attribute_name="Deposit Thickness and Extent" faims_attribute_type="freetext" faims_certainty="false" faims_read_only="false" ref="Deposit_Thickness_Extent">
-          <label>{Deposit_Thickness_&amp;_Extent}</label>
+          <label>Deposit Thickness &amp; Extent</label>
         </input>
         <!--We would like to see Dropdown-->
         <select1 faims_attribute_name="Horizon Boundary" faims_attribute_type="vocab" faims_certainty="true" faims_read_only="false" ref="Horizon_Boundary">
@@ -519,20 +527,11 @@
               </item>
             </select1>
           </group>
-          <group faims_style="even" ref="child2">
-            <label/>
-            <select1 faims_certainty="false" faims_read_only="false" ref="verb">
-              <label>Verb</label>
-              <item>
-                <label>placeholder</label>
-                <value>placeholder</value>
-              </item>
-            </select1>
-          </group>
+          
           <group faims_style="even" ref="child3">
             <label/>
             <select1 faims_certainty="false" faims_read_only="false" ref="context">
-              <label>Context to Associate</label>
+              <label>to Context</label>
               <item>
                 <label>placeholder</label>
                 <value>placeholder</value>
@@ -544,17 +543,38 @@
         <trigger ref="relate">
               <label>Relate context via selected relationship</label>
             </trigger>
+   <select1 faims_certainty="false" faims_read_only="false" ref="listRelns">
+              <label>Associated Entities:</label>
+              <item>
+                <label>placeholder</label>
+                <value>placeholder</value>
+              </item>
+            </select1>
+ <group faims_style="orientation" ref="container4">
+          <label/>
+          <group faims_style="even" ref="child1">
+            <label/>
+            <trigger ref="deleteReln">
+              <label>Remove Reln</label>
+            </trigger>
+          </group>
+          <group faims_style="even" ref="child2">
+            <label/>
+            <trigger ref="showReln">
+              <label>Load ArchEnt</label>
+            </trigger>
+          </group>
+        </group>
+
+
       </group>
       <group ref="Context_Interpretation">
         <label>Int</label>
         <!--We would like to see Dropdown-->
-        <select1 faims_attribute_name="Your Interpretation" faims_attribute_type="vocab" faims_certainty="true" faims_read_only="false" ref="Your_Interpretation">
+        <input faims_attribute_name="Your Interpretation" faims_attribute_type="freetext" faims_certainty="true" faims_read_only="false" ref="Your_Interpretation">
           <label>{Your_Interpretation}</label>
-          <item>
-            <label>placeholder</label>
-            <value>placeholder</value>
-          </item>
-        </select1>
+          
+        </input>
         <input faims_attribute_name="Your Discussion" faims_attribute_type="freetext" faims_certainty="true" faims_read_only="false" ref="Your_Discussion">
           <label>{Your_Discussion}</label>
         </input>

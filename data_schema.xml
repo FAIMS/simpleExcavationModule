@@ -15,25 +15,25 @@
     <parent>Above</parent>
     <child>Below</child>
   </RelationshipElement>
-  <RelationshipElement name="SameAs" type="bidirectional">
+  <RelationshipElement name="Same As" type="bidirectional">
     <description>Implements a same as for contexts</description>
   </RelationshipElement>
-  <RelationshipElement name="ContainsContainedBy" type="hierarchical">
+  <RelationshipElement name="Contains - Contained By" type="hierarchical">
     <description>Implements a contains-containedby for contexts.</description>
     <parent>Contains</parent>
-    <child>ContainedBy</child>
+    <child>Contained By</child>
   </RelationshipElement>
-  <RelationshipElement name="CutsCutBy" type="hierarchical">
+  <RelationshipElement name="Cuts - Cut By" type="hierarchical">
     <description>Implements a cuts-cutby for contexts.</description>
     <parent>Cuts</parent>
-    <child>CutBy</child>
+    <child>Cut By</child>
   </RelationshipElement>
-  <RelationshipElement name="Butts/ButtedBy" type="hierarchical">
+  <RelationshipElement name="Butts - Butted By" type="hierarchical">
     <description>Implements a Butts-ButtedBy for contexts.</description>
     <parent>Butts</parent>
-    <child>ButtedBy</child>
+    <child>Butted By</child>
   </RelationshipElement>
-  <RelationshipElement name="BondedTo" type="bidirectional">
+  <RelationshipElement name="Bonded To" type="bidirectional">
     <description>Implements a bonded to for contexts</description>
   </RelationshipElement>
   <RelationshipElement name="ContextArtefactGroup" type="bidirectional">

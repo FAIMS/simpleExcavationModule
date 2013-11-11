@@ -1,4 +1,6 @@
 /*** 'Editable' - you can edit the code below based on the needs ***/
+User user; // don't touch
+String userid;
 
 setSyncEnabled(true);
 setFileSyncEnabled(true);
@@ -25,6 +27,7 @@ onEvent("Context/Context_Attachments/Update", "delayclick", "saveContext()");
 onEvent("Context/Context_Attachments/Delete", "delayclick", "deleteContext()");
 onEvent("control/data/ContextList", "click", "loadContext()");
 onEvent("control/data/newContext", "click", "newContext()");
+
 
 
 
@@ -57,7 +60,7 @@ loadContextAttributes(){
     populateRadioGroup("Context/Context_Cuts/Break_of_slope_Base", makeVocab("Break of slope - Base"));
     populateHierarchicalDropDown("Context/Context_Cuts/Shape_of_Base", "Shape of Base");
     populateDropDown("Context/Context_Cuts/Orientation", makeVocab("Orientation"));
-    populateHierarchicalDropDown("Context/Context_Interpretation/Your_Interpretation", "Your Interpretation");
+    //populateHierarchicalDropDown("Context/Context_Interpretation/Your_Interpretation", "Your Interpretation");
 
 }
 
@@ -97,15 +100,26 @@ doNotDelete(){
 loadContext() {
 	//newContext();
 	context_id = getListItemValue();
+	loadContextFrom(context_id);
+}
+
+loadContextFrom(contextid) {
+	//newContext();
+	context_id = contextid;
 	if (isNull(context_id)) return;
-	loadContextAttributes();
+	showToast(context_id);
 	showTabGroup("Context", context_id);
+	loadContextAttributes();
+	updateAllContext();
+	updateRelns();
 
 }
 
 
-/*** Artefact Group ***/
 
+
+/*** Artefact Group ***/
+onEvent("Context/Context_Relationships_to_Other_Contexts/loadArtefactGroup", "click", "loadArtefactGroup()");
 onEvent("Context/Context_Relationships_to_Other_Contexts/newArtefactGroup", "click", "newArtefactGroup()");
 
 onEvent("Artefact_Group/Artefact_Group_GeneralInformation/Update", "delayclick", "saveArtefactGroup()");
@@ -126,7 +140,31 @@ onEvent("ArtefactGroup/ArtefactGroup_Attachments/viewattached", "click", "viewAr
 
 */
 onEvent("Context/Context_Relationships_to_Other_Contexts", "show", "updateAllContext()");
+onEvent("Context/Context_Relationships_to_Other_Contexts/relate", "delayclick", "makeHierReln()");
+onEvent("Context/Context_Relationships_to_Other_Contexts/showReln", "click", "loadContextFromReln()");
+
+loadContextFromReln(){
+	String relnid = getFieldValue("Context/Context_Relationships_to_Other_Contexts/listRelns");		
+	if (!isNull(relnid)){
+		
+		Object uuid = fetchOne("select uuid from latestNonDeletedAentReln where relationshipID = '"+relnid+"' and uuid != '"+context_id+"';");
+		context_id = uuid.get(0);
+		loadContextFrom(uuid.get(0));
+	}
+
+}
+onEvent("Context/Context_Relationships_to_Other_Contexts/deleteReln", "delayclick", "deleteReln()");
+deleteReln(){
+	relnid = getFieldValue("Context/Context_Relationships_to_Other_Contexts/listRelns");
+	
+	String query = "insert into aentreln (uuid, relationshipid, deleted, participatesverb, userid) select uuid, relationshipid, 'true', participatesverb, '"+userid+"' from latestnondeletedaentreln where relationshipid = '"+relnid+"';";
+	
+	fetchOne(query);
+	deleteRel(relnid);
+	updateRelns();
+}
 updateAllContext(){
+
 	Object localArtefactGroup = new ArrayList();
 	Object localSample = new ArrayList();
 	Object relnList = new ArrayList();
@@ -168,25 +206,55 @@ updateAllContext(){
 "group by uuid\n"+
 "order by valuetimestamp desc, uuid, attributename;");
 
-relnList = fetchAll("select relntypeid, relntypename from relntype where relntypename not like '%Context%' order by relntypeid;");
-verbList = fetchAll("select parent, parent from relntype where relntypeid in (select relntypeid from relntype where relntypename not like '%Context%' order by relntypeid limit 1) union select child, child from relntype where relntypeid in (select relntypeid from relntype where relntypename not like '%Context%' order by relntypeid limit 1);");
+relnList = fetchAll("select relntypename||'~!~'||coalesce(nullif(parent||'~!~'||child,'~!~'),relntypename||'~!~'||relntypename) as relntypeid, coalesce(nullif(parent,''), relntypename) as name, relntypeid from relntype where relntypename not like '%Context%' union select relntypename||'~!~'||coalesce(nullif(child||'~!~'||parent,'~!~'),relntypename||'~!~'||relntypename), coalesce(nullif(child,''), relntypename) as name, relntypeid from relntype where relntypename not like '%Context%' order by relntypeid, name;");
+//verbList = fetchAll("select parent, parent from relntype where relntypeid in (select relntypeid from relntype where relntypename not like '%Context%' order by relntypeid limit 1) union select child, child from relntype where relntypeid in (select relntypeid from relntype where relntypename not like '%Context%' order by relntypeid limit 1);");
 contextList = fetchAll("select uuid, group_concat(coalesce(measure || ' ' || vocabname || '(' ||freetext||')',  measure || ' (' || freetext ||')',  vocabname || ' (' || freetext ||')',  measure || ' ' || vocabname ,  vocabname || ' (' || freetext || ')',  measure || ' (' || freetext || ')',  measure,  vocabname,  freetext,  measure,  vocabname,  freetext), ' | ') as response from latestNonDeletedArchEntIdentifiers where aenttypename = 'Context' and uuid != '"+context_id+"' group by uuid;" );
 	}
 	populateDropDown("Context/Context_Relationships_to_Other_Contexts/artefactGroup", localArtefactGroup);
 	populateDropDown("Context/Context_Relationships_to_Other_Contexts/sample", localSample);
 	populateDropDown("Context/Context_Relationships_to_Other_Contexts/reln", relnList);
-	populateDropDown("Context/Context_Relationships_to_Other_Contexts/verb", verbList);
 	populateDropDown("Context/Context_Relationships_to_Other_Contexts/context", contextList);
+
+	updateRelns();
+	
 }
 
-onEvent("Context/Context_Relationships_to_Other_Contexts/reln", "click", "updateVerb()");
-
-updateVerb(){
-	string reln = getFieldValue("Context/Context_Relationships_to_Other_Contexts/reln");
-	if (!isNull(reln)){
-		verbList = fetchAll("select parent, parent from relntype where relntypename = '"+reln+"' union select child, child from relntype where relntypename = '"+reln+"' ");
+makeHierReln(){
+	if (isNull(context_id)){
+		showToast("You must have saved your entity.");
+		return;
 	}
-	populateDropDown("Context/Context_Relationships_to_Other_Contexts/verb", verbList);
+	String[] arguments = getFieldValue("Context/Context_Relationships_to_Other_Contexts/reln").split("~!~");
+	String dest = getFieldValue("Context/Context_Relationships_to_Other_Contexts/context");
+
+
+	//showToast(getFieldValue("Context/Context_GeneralInformation/Context_ID")+" is "+arguments[1]+" "+dest);
+
+
+
+	saveEntitiesToHierRel(arguments[0], context_id, dest, arguments[1], arguments[2]);
+	updateRelns();
+}
+
+
+updateRelns(){
+	Object contextRelnList = fetchAll("select relationshipid, aenttypename || ' ' || group_concat(coalesce(measure || ' ' || vocabname || '(' ||freetext||')',  measure || ' (' || freetext ||')',  vocabname || ' (' || freetext ||')',  measure || ' ' || vocabname ,  vocabname || ' (' || freetext || ')',  measure || ' (' || freetext || ')',  measure,  vocabname,  freetext,  measure,  vocabname,  freetext), ' | ') || ' is ' || participatesVerb || ' "+getFieldValue("Context/Context_GeneralInformation/Context_ID")+"' as response, valuetimestamp, aentrelntimestamp "+
+"  FROM (  SELECT uuid, attributeid, vocabid, attributename, vocabname, measure, freetext, certainty, attributetype, valuetimestamp, aenttypename, participatesVerb, relationshipid,aentrelntimestamp "+
+"            FROM latestNonDeletedArchentIdentifiers join latestNonDeletedAentReln using (uuid) "+
+"           WHERE aenttypename = 'Context'  "+
+"             AND uuid in (select uuid "+
+"                            FROM latestNonDeletedAentReln  "+
+"                           where relationshipid in (select relationshipid  "+
+"                                                      FROM latestNonDeletedAentReln  "+
+"                                                      JOIN relationship using (relationshipid)  "+
+"                                                      JOIN relntype using (relntypeid)  "+
+"                                                     where uuid = "+context_id+" "+
+"                                                       and relntypeName not like '%Context%')  "+
+"                             and uuid != "+context_id+")  "+        
+"        ORDER BY uuid, attributename ASC "+
+"        ) "+
+"group by uuid, relationshipid order by aentrelntimestamp desc ; ");
+	populateDropDown("Context/Context_Relationships_to_Other_Contexts/listRelns", contextRelnList);
 
 
 }
@@ -206,6 +274,7 @@ loadArtefactGroupAttributes(){
 
 	setFieldValue("Artefact_Group/Artefact_Group_GeneralInformation/Context_ID", getFieldValue("Context/Context_GeneralInformation/Context_ID"));
 	setFieldValue("Artefact_Group/Artefact_Group_GeneralInformation/Site_Code", getFieldValue("Context/Context_GeneralInformation/Site_Code"));
+
 	populateHierarchicalDropDown("Artefact_Group/Artefact_Group_GeneralInformation/Artefact_Class", "Artefact Class");
 
 	/*
@@ -220,7 +289,7 @@ loadArtefactGroupAttributes(){
     populateRadioGroup("ArtefactGroup/ArtefactGroup_Cuts/Shape_of_Corners", makeVocab("Shape of Corners"));
     populateRadioGroup("ArtefactGroup/ArtefactGroup_Cuts/Break_of_Slope_Top", makeVocab("Break of Slope - Top"));
     populateRadioGroup("ArtefactGroup/ArtefactGroup_Cuts/Break_of_slope_Base", makeVocab("Break of slope - Base"));
-    populateHierarchicalDropDown("ArtefactGroup/ArtefactGroup_Cuts/Shape_of_Base", "Shape of Base");
+    populateHierarchicalDropDown("ArtefactGroup/ArefactGroup_Cuts/Shape_of_Base", "Shape of Base");
     populateDropDown("ArtefactGroup/ArtefactGroup_Cuts/Orientation", makeVocab("Orientation"));
     populateHierarchicalDropDown("ArtefactGroup/ArtefactGroup_Interpretation/Your_Interpretation", "Your Interpretation");
 	*/
@@ -273,7 +342,7 @@ doNotDelete(){
 
 loadArtefactGroup() {
 	//newArtefactGroup();
-	artefactgroup_id = getListItemValue();
+	artefactgroup_id = getFieldValue("Context/Context_Relationships_to_Other_Contexts/artefactGroup");
 	if (isNull(artefactgroup_id)) return;
 	loadArtefactGroupAttributes();
 	showTabGroup("Artefact_Group", artefactgroup_id);
@@ -282,7 +351,9 @@ loadArtefactGroup() {
 
 
 
+
 /*** Sample ***/
+onEvent("Context/Context_Relationships_to_Other_Contexts/loadSample", "click", "loadSample()");
 
 onEvent("Context/Context_Relationships_to_Other_Contexts/newSample", "click", "newSample()");
 
@@ -389,7 +460,7 @@ doNotDelete(){
 
 loadSample() {
 	//newSample();
-	sample_id = getListItemValue();
+	sample_id = getFieldValue("Context/Context_Relationships_to_Other_Contexts/sample");
 	if (isNull(sample_id)) return;
 	loadSampleAttributes();
 	showTabGroup("Sample", sample_id);
@@ -408,13 +479,24 @@ saveEntitiesToRel(type, entity1, entity2) {
 	addReln(entity2, rel_id, null);
 }
 
+
+
+saveEntitiesToHierRel(type, entity1, entity2, e1verb, e2verb) {
+	if (isNull(entity1) || isNull(entity2)) return;
+	
+	rel_id = saveRel(null, type, null, null);
+	addReln(entity1, rel_id, e1verb);
+	addReln(entity2, rel_id, e2verb);
+}
+
+
 makeVocab(String attrib){
     Object a = fetchAll("select vocabid, vocabname from vocabulary join attributekey using (attributeid) where attributename = '"+attrib+"' ");
     return a;
 }
 
 /*** 'Uneditable' - you can edit the code below with extreme precaution ***/
-User user;
+
 /*
 initMap() {
 	setMapZoom("control/map/map", 19.0f);
@@ -520,7 +602,7 @@ String device = "";
 login(){
 	Object userResult = fetchOne("select userid,fname,lname,email from user where userid='" + getListItemValue() + "';");
 	User user = new User(userResult.get(0),userResult.get(1),userResult.get(2),userResult.get(3));
-
+	userid = userResult.get(0);
 	setUser(user);
 	username = userResult.get(1) + " " + userResult.get(2);
 	showTabGroup("control");
