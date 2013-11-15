@@ -5,6 +5,8 @@ String userid;
 setSyncEnabled(true);
 setFileSyncEnabled(true);
 
+showWarning("Thanks for trying this module!", "We have provided this module for Demonstration purposes only. You can customise the module yourself or we can help you. Contact info@fedarch.org for help.");
+
 
 /*** control ***/
 
@@ -134,6 +136,7 @@ onEvent("ArtefactGroup/ArtefactGroup_Attachments/attachPhoto", "click", "attachP
 onEvent("control/data/ArtefactGroupList", "click", "loadArtefactGroup()");
 
 
+//test
 
 onEvent("ArtefactGroup/ArtefactGroup_Attachments/attachSketch", "click", "attachFileTo(\"ArtefactGroup/ArtefactGroup_Attachments/Sketch\")");
 onEvent("ArtefactGroup/ArtefactGroup_Attachments/viewattached", "click", "viewArchEntAttachedFiles(entityId)");
@@ -171,6 +174,9 @@ updateAllContext(){
 	Object verbList = new ArrayList();
 	Object contextList = new ArrayList();
 
+	relnList = fetchAll("select relntypename||'~!~'||coalesce(nullif(parent||'~!~'||child,'~!~'),relntypename||'~!~'||relntypename) as relntypeid, coalesce(nullif(parent,''), relntypename) as name, relntypeid from relntype where relntypename not like '%Context%' union select relntypename||'~!~'||coalesce(nullif(child||'~!~'||parent,'~!~'),relntypename||'~!~'||relntypename), coalesce(nullif(child,''), relntypename) as name, relntypeid from relntype where relntypename not like '%Context%' order by relntypeid, name;");
+	populateDropDown("Context/Context_Relationships_to_Other_Contexts/reln", relnList);
+
 	if (!isNull(context_id)){
 		localArtefactGroup = fetchAll("select uuid, aenttypename || ': ' || group_concat(coalesce(measure || ' ' || vocabname || '(' ||freetext||')',  measure || ' (' || freetext ||')',  vocabname || ' (' || freetext ||')',  measure || ' ' || vocabname ,  vocabname || ' (' || freetext || ')',  measure || ' (' || freetext || ')',  measure,  vocabname,  freetext,  measure,  vocabname,  freetext), ' | ') as response, valuetimestamp\n"+
 "  FROM (  SELECT uuid, attributeid, vocabid, attributename, vocabname, measure, freetext, certainty, attributetype, valuetimestamp, aenttypename\n"+
@@ -206,13 +212,13 @@ updateAllContext(){
 "group by uuid\n"+
 "order by valuetimestamp desc, uuid, attributename;");
 
-relnList = fetchAll("select relntypename||'~!~'||coalesce(nullif(parent||'~!~'||child,'~!~'),relntypename||'~!~'||relntypename) as relntypeid, coalesce(nullif(parent,''), relntypename) as name, relntypeid from relntype where relntypename not like '%Context%' union select relntypename||'~!~'||coalesce(nullif(child||'~!~'||parent,'~!~'),relntypename||'~!~'||relntypename), coalesce(nullif(child,''), relntypename) as name, relntypeid from relntype where relntypename not like '%Context%' order by relntypeid, name;");
+
 //verbList = fetchAll("select parent, parent from relntype where relntypeid in (select relntypeid from relntype where relntypename not like '%Context%' order by relntypeid limit 1) union select child, child from relntype where relntypeid in (select relntypeid from relntype where relntypename not like '%Context%' order by relntypeid limit 1);");
 contextList = fetchAll("select uuid, group_concat(coalesce(measure || ' ' || vocabname || '(' ||freetext||')',  measure || ' (' || freetext ||')',  vocabname || ' (' || freetext ||')',  measure || ' ' || vocabname ,  vocabname || ' (' || freetext || ')',  measure || ' (' || freetext || ')',  measure,  vocabname,  freetext,  measure,  vocabname,  freetext), ' | ') as response from latestNonDeletedArchEntIdentifiers where aenttypename = 'Context' and uuid != '"+context_id+"' group by uuid;" );
 	}
 	populateDropDown("Context/Context_Relationships_to_Other_Contexts/artefactGroup", localArtefactGroup);
 	populateDropDown("Context/Context_Relationships_to_Other_Contexts/sample", localSample);
-	populateDropDown("Context/Context_Relationships_to_Other_Contexts/reln", relnList);
+	
 	populateDropDown("Context/Context_Relationships_to_Other_Contexts/context", contextList);
 
 	updateRelns();
@@ -220,6 +226,8 @@ contextList = fetchAll("select uuid, group_concat(coalesce(measure || ' ' || voc
 }
 
 makeHierReln(){
+	saveContext();
+
 	if (isNull(context_id)){
 		showToast("You must have saved your entity.");
 		return;
@@ -316,6 +324,8 @@ saveArtefactGroup() {
 	   saveTabGroup("Artefact_Group", artefactgroup_id, null, null, "artefactgroup_id = getLastSavedRecordId(); onArtefactGroupSaved()");
    	}
 
+   	cancelTabGroup("Artefact_Group");   	
+   	showTab("Context/Context_Relationships_to_Other_Contexts");
 	//saveTabGroup("ArtefactGroup", artefactgroup_id, data, null, "artefactgroup_id = getLastSavedRecordId(); clearCreatedGeometry();");
 	
 }
@@ -434,6 +444,8 @@ saveSample() {
 	   saveTabGroup("Sample", sample_id, null, null, "sample_id = getLastSavedRecordId(); onSampleSaved()");
    	}
 
+	cancelTabGroup("Sample");   	
+   	showTab("Context/Context_Relationships_to_Other_Contexts");
 	//saveTabGroup("Sample", sample_id, data, null, "sample_id = getLastSavedRecordId(); clearCreatedGeometry();");
 	
 }

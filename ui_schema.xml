@@ -209,6 +209,7 @@
       <bind nodeset="/faims/Context/Context_Cuts/Depth" type="decimal"/>
       <bind nodeset="/faims/Context/Context_Cuts/Sides_of_Cut" type="string"/>
       <bind nodeset="/faims/Context/Context_Cuts/Truncation" type="string"/>
+      <bind nodeset="/faims/Context/Context_Relationships_to_Other_Contexts/spacer" type="string"/>
       <bind nodeset="/faims/Context/Context_Interpretation/Your_Discussion" type="string"/>
       <bind nodeset="/faims/Context/Context_Interpretation/Your_description" type="string"/>
       <bind nodeset="/faims/Context/Context_Interpretation/Associations" type="string"/>
@@ -468,9 +469,7 @@
       <group ref="Context_Relationships_to_Other_Contexts">
         <label>Reln</label>
         <!-- Brian todo, figure out how to model this -->
-        <trigger ref="newArtefactGroup">
-          <label>Create Artefact Group</label>
-        </trigger>
+        
         <group faims_style="orientation" ref="container1">
           <label/>
           <group faims_style="even" ref="child1">
@@ -490,9 +489,10 @@
             </trigger>
           </group>
         </group>
-        <trigger ref="newSample">
-          <label>Create Sample</label>
+        <trigger ref="newArtefactGroup">
+          <label>Create Artefact Group</label>
         </trigger>
+        
         <group faims_style="orientation" ref="container2">
           <label/>
           <group faims_style="even" ref="child1">
@@ -512,6 +512,9 @@
             </trigger>
           </group>
         </group>
+        <trigger ref="newSample">
+          <label>Create Sample</label>
+        </trigger>        
         <input faims_certainty="false" faims_read_only="true" ref="spacer">
           <label></label>
         </input>
