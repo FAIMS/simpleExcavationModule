@@ -7,7 +7,7 @@ setFileSyncEnabled(true);
 
 showWarning("Thanks for trying this module!", "We have provided this module for Demonstration purposes only. You can customise the module yourself or we can help you. Contact info@fedarch.org for help.");
 
-
+	
 /*** control ***/
 
 onEvent("control/data", "show", "refreshEntities()");
@@ -35,6 +35,8 @@ onEvent("control/data/newContext", "click", "newContext()");
 
 onEvent("Context/Context_Attachments/attachSketch", "click", "attachFileTo(\"Context/Context_Attachments/Sketch\")");
 onEvent("Context/Context_Attachments/viewattached", "click", "viewArchEntAttachedFiles(entityId)");
+
+loadContextAttributes();
 
 
 String context_id = null;
@@ -111,7 +113,6 @@ loadContextFrom(contextid) {
 	if (isNull(context_id)) return;
 	showToast(context_id);
 	showTabGroup("Context", context_id);
-	loadContextAttributes();
 	updateAllContext();
 	updateRelns();
 
@@ -268,39 +269,28 @@ updateRelns(){
 }
 String artefactgroup_id = null;
 
+loadArtefactGroupAttributes();
+
+
 newArtefactGroup(){
 	saveContext();
 	artefactgroup_id = null;
 	newTabGroup("Artefact_Group");
     
-   loadArtefactGroupAttributes();
+    setArtefactGroupAttributes();
 
 
 }
-
+setArtefactGroupAttributes(){
+		setFieldValue("Artefact_Group/Artefact_Group_GeneralInformation/Context_ID", getFieldValue("Context/Context_GeneralInformation/Context_ID"));
+	setFieldValue("Artefact_Group/Artefact_Group_GeneralInformation/Site_Code", getFieldValue("Context/Context_GeneralInformation/Site_Code"));
+}
 loadArtefactGroupAttributes(){
 
-	setFieldValue("Artefact_Group/Artefact_Group_GeneralInformation/Context_ID", getFieldValue("Context/Context_GeneralInformation/Context_ID"));
-	setFieldValue("Artefact_Group/Artefact_Group_GeneralInformation/Site_Code", getFieldValue("Context/Context_GeneralInformation/Site_Code"));
+
 
 	populateHierarchicalDropDown("Artefact_Group/Artefact_Group_GeneralInformation/Artefact_Class", "Artefact Class");
 
-	/*
-	populateDropDown("ArtefactGroup/ArtefactGroup_GeneralInformation/ArtefactGroup_Type", makeVocab("ArtefactGroup Type"));
-    populateHierarchicalDropDown("ArtefactGroup/ArtefactGroup_Deposits/Soil_Compaction_Type", "Soil Compaction Type");
-    populateDropDown("ArtefactGroup/ArtefactGroup_Deposits/Soil_Grain_Size", makeVocab("Soil Grain Size"));
-    populateDropDown("ArtefactGroup/ArtefactGroup_Deposits/Soil_Texture", makeVocab("Soil Texture"));
-    populateDropDown("ArtefactGroup/ArtefactGroup_Deposits/Soil_Particle_Sorting", makeVocab("Soil Particle Sorting"));
-    populateHierarchicalDropDown("ArtefactGroup/ArtefactGroup_Deposits/Soil_Stone_Shape", "Soil Stone Shape");
-    populateDropDown("ArtefactGroup/ArtefactGroup_Deposits/Horizon_Boundary", makeVocab("Horizon Boundary"));
-    populateDropDown("ArtefactGroup/ArtefactGroup_Cuts/Shape_of_Cut", makeVocab("Shape of Cut"));
-    populateRadioGroup("ArtefactGroup/ArtefactGroup_Cuts/Shape_of_Corners", makeVocab("Shape of Corners"));
-    populateRadioGroup("ArtefactGroup/ArtefactGroup_Cuts/Break_of_Slope_Top", makeVocab("Break of Slope - Top"));
-    populateRadioGroup("ArtefactGroup/ArtefactGroup_Cuts/Break_of_slope_Base", makeVocab("Break of slope - Base"));
-    populateHierarchicalDropDown("ArtefactGroup/ArefactGroup_Cuts/Shape_of_Base", "Shape of Base");
-    populateDropDown("ArtefactGroup/ArtefactGroup_Cuts/Orientation", makeVocab("Orientation"));
-    populateHierarchicalDropDown("ArtefactGroup/ArtefactGroup_Interpretation/Your_Interpretation", "Your Interpretation");
-	*/
 }
 
 
@@ -354,7 +344,6 @@ loadArtefactGroup() {
 	//newArtefactGroup();
 	artefactgroup_id = getFieldValue("Context/Context_Relationships_to_Other_Contexts/artefactGroup");
 	if (isNull(artefactgroup_id)) return;
-	loadArtefactGroupAttributes();
 	showTabGroup("Artefact_Group", artefactgroup_id);
 
 }
@@ -387,40 +376,29 @@ onEvent("Sample/Sample_Attachments/viewattached", "click", "viewArchEntAttachedF
 
 
 String sample_id = null;
+loadSampleAttributes();
+
 
 newSample(){
 	saveContext();
 	sample_id = null;
 	newTabGroup("Sample");
-    
-   loadSampleAttributes();
+    setSampleAttributes();
 
 
 }
 
-loadSampleAttributes(){
-
+setSampleAttributes(){
 	setFieldValue("Sample/Sample_GeneralInformation/Context_ID", getFieldValue("Context/Context_GeneralInformation/Context_ID"));
 	setFieldValue("Sample/Sample_GeneralInformation/Site_Code", getFieldValue("Context/Context_GeneralInformation/Site_Code"));
+}
+loadSampleAttributes(){
+
+	
 	populateRadioGroup("Sample/Sample_GeneralInformation/Sample_Type", makeVocab("Sample Type"));
 	populateRadioGroup("Sample/Sample_GeneralInformation/Collection_Method", makeVocab("Collection Method"));
 
-	/*
-	populateDropDown("Sample/Sample_GeneralInformation/Sample_Type", );
-    populateHierarchicalDropDown("Sample/Sample_Deposits/Soil_Compaction_Type", "Soil Compaction Type");
-    populateDropDown("Sample/Sample_Deposits/Soil_Grain_Size", makeVocab("Soil Grain Size"));
-    populateDropDown("Sample/Sample_Deposits/Soil_Texture", makeVocab("Soil Texture"));
-    populateDropDown("Sample/Sample_Deposits/Soil_Particle_Sorting", makeVocab("Soil Particle Sorting"));
-    populateHierarchicalDropDown("Sample/Sample_Deposits/Soil_Stone_Shape", "Soil Stone Shape");
-    populateDropDown("Sample/Sample_Deposits/Horizon_Boundary", makeVocab("Horizon Boundary"));
-    populateDropDown("Sample/Sample_Cuts/Shape_of_Cut", makeVocab("Shape of Cut"));
-    populateRadioGroup("Sample/Sample_Cuts/Shape_of_Corners", makeVocab("Shape of Corners"));
-    populateRadioGroup("Sample/Sample_Cuts/Break_of_Slope_Top", makeVocab("Break of Slope - Top"));
-    populateRadioGroup("Sample/Sample_Cuts/Break_of_slope_Base", makeVocab("Break of slope - Base"));
-    populateHierarchicalDropDown("Sample/Sample_Cuts/Shape_of_Base", "Shape of Base");
-    populateDropDown("Sample/Sample_Cuts/Orientation", makeVocab("Orientation"));
-    populateHierarchicalDropDown("Sample/Sample_Interpretation/Your_Interpretation", "Your Interpretation");
-	*/
+	
 }
 
 
@@ -474,7 +452,6 @@ loadSample() {
 	//newSample();
 	sample_id = getFieldValue("Context/Context_Relationships_to_Other_Contexts/sample");
 	if (isNull(sample_id)) return;
-	loadSampleAttributes();
 	showTabGroup("Sample", sample_id);
 
 }
