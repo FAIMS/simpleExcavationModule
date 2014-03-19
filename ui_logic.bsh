@@ -11,6 +11,9 @@ showWarning("Thanks for trying this module!", "We have provided this module for 
 /*** control ***/
 
 onEvent("control/data", "show", "refreshEntities()");
+onEvent("control/data", "load", "loadContextAttributes()");
+onEvent("control/data", "load", "loadArtefactGroupAttributes();");
+onEvent("control/data", "load", "loadSampleAttributes()");
 onEvent("control/gps/connectexternal", "click", "startExternalGPS()");
 onEvent("control/gps/connectinternal", "click", "startInternalGPS()");
 
@@ -36,18 +39,12 @@ onEvent("control/data/newContext", "click", "newContext()");
 onEvent("Context/Context_Attachments/attachSketch", "click", "attachFileTo(\"Context/Context_Attachments/Sketch\")");
 onEvent("Context/Context_Attachments/viewattached", "click", "viewArchEntAttachedFiles(entityId)");
 
-loadContextAttributes();
-
 
 String context_id = null;
 
 newContext(){
 	context_id = null;
 	newTabGroup("Context");
-    
-   loadContextAttributes();
-
-
 }
 
 loadContextAttributes(){
@@ -72,6 +69,7 @@ loadContextAttributes(){
 saveContext() {
 	if (isNull(getFieldValue("Context/Context_GeneralInformation/Context_ID"))) {
 		showWarning("Logic Error", "Cannot save record without id");
+        showTabGroup("Context");
 		return;
 	}
 	
@@ -125,7 +123,7 @@ loadContextFrom(contextid) {
 onEvent("Context/Context_Relationships_to_Other_Contexts/loadArtefactGroup", "click", "loadArtefactGroup()");
 onEvent("Context/Context_Relationships_to_Other_Contexts/newArtefactGroup", "click", "newArtefactGroup()");
 
-onEvent("Artefact_Group/Artefact_Group_GeneralInformation/Update", "delayclick", "saveArtefactGroup()");
+onEvent("Artefact_Group/Artefact_Group_GeneralInformation/Update", "delayclick", "saveArtefactGroup();");
 onEvent("Artefact_Group/Artefact_Group_GeneralInformation/Delete", "delayclick", "deleteArtefactGroup()");
 
 /*
@@ -269,9 +267,6 @@ updateRelns(){
 }
 String artefactgroup_id = null;
 
-loadArtefactGroupAttributes();
-
-
 newArtefactGroup(){
 	saveContext();
 	artefactgroup_id = null;
@@ -286,11 +281,7 @@ setArtefactGroupAttributes(){
 	setFieldValue("Artefact_Group/Artefact_Group_GeneralInformation/Site_Code", getFieldValue("Context/Context_GeneralInformation/Site_Code"));
 }
 loadArtefactGroupAttributes(){
-
-
-
 	populateHierarchicalDropDown("Artefact_Group/Artefact_Group_GeneralInformation/Artefact_Class", "Artefact Class");
-
 }
 
 
@@ -314,7 +305,6 @@ saveArtefactGroup() {
 	   saveTabGroup("Artefact_Group", artefactgroup_id, null, null, "artefactgroup_id = getLastSavedRecordId(); onArtefactGroupSaved()");
    	}
 
-   	cancelTabGroup("Artefact_Group");   	
    	showTab("Context/Context_Relationships_to_Other_Contexts");
 	//saveTabGroup("ArtefactGroup", artefactgroup_id, data, null, "artefactgroup_id = getLastSavedRecordId(); clearCreatedGeometry();");
 	
@@ -376,7 +366,6 @@ onEvent("Sample/Sample_Attachments/viewattached", "click", "viewArchEntAttachedF
 
 
 String sample_id = null;
-loadSampleAttributes();
 
 
 newSample(){
@@ -393,12 +382,8 @@ setSampleAttributes(){
 	setFieldValue("Sample/Sample_GeneralInformation/Site_Code", getFieldValue("Context/Context_GeneralInformation/Site_Code"));
 }
 loadSampleAttributes(){
-
-	
 	populateRadioGroup("Sample/Sample_GeneralInformation/Sample_Type", makeVocab("Sample Type"));
 	populateRadioGroup("Sample/Sample_GeneralInformation/Collection_Method", makeVocab("Collection Method"));
-
-	
 }
 
 
@@ -422,7 +407,6 @@ saveSample() {
 	   saveTabGroup("Sample", sample_id, null, null, "sample_id = getLastSavedRecordId(); onSampleSaved()");
    	}
 
-	cancelTabGroup("Sample");   	
    	showTab("Context/Context_Relationships_to_Other_Contexts");
 	//saveTabGroup("Sample", sample_id, data, null, "sample_id = getLastSavedRecordId(); clearCreatedGeometry();");
 	
